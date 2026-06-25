@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, func, Float
 from database.connection import engine
 from datetime import datetime
 
@@ -14,7 +14,7 @@ class UrlModel(Base):
     title: Mapped[str]
     is_active: Mapped[bool] = mapped_column(default=True)
 
-    responses: Mapped[list["ResponseModel"]] = relationship()
+    responses: Mapped[list["ResponseModel"]] = relationship(back_populates="url")
 
 
 class ResponseModel(Base):
@@ -23,8 +23,10 @@ class ResponseModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     service_id: Mapped[int] = mapped_column(ForeignKey("urls.id", ondelete="cascade"), index=True)
     status_code: Mapped[int]
-    response_time: Mapped[int]
+    response_time: Mapped[float] = mapped_column(Float)
     check_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
+
+    url: Mapped["UrlModel"] = relationship(back_populates="responses")
 
 
 async def setup_database():
