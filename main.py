@@ -7,7 +7,22 @@ from handlers.handlers import handle_url_input, handle_url_output, handle_get_ur
 from schemas.urls import UrlResponseSchema
 import asyncio
 
-app = FastAPI()
+
+from services.checker import run_monitoring_loop
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Всё, что ДО yield, выполняется ПРИ СТАРТЕ сервера
+    # create_task запускает бесконечный цикл в фоне
+    bg_task = asyncio.create_task(run_monitoring_loop())
+    
+    yield  # Здесь FastAPI работает и принимает запросы
+    
+    # Всё, что ПОСЛЕ yield, выполняется ПРИ ОСТАНОВКЕ сервера
+    bg_task.cancel()  # Мягко тушим воркер при выключении приложения
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/urls", response_model=list[UrlResponseSchema])
 async def get_all_monitoring_urls():
